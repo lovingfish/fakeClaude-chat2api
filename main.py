@@ -112,8 +112,10 @@ async def stream_generator(response: httpx.Response, model: str) -> AsyncGenerat
     async for line in response.aiter_lines():
         if line.startswith("data:"):
             content = line[5:].strip()
-            if content and content != "-1":
-                yield f"data: {StreamResponse(id=stream_id, created=created_time, model=model, choices=[StreamChoice(delta={'content': content})]).json()}\n\n"
+            # Normalize literal newline escape sequences from upstream into real newlines
+            normalized_content = content.replace("\\n", "\n")
+            if normalized_content and normalized_content != "-1":
+                yield f"data: {StreamResponse(id=stream_id, created=created_time, model=model, choices=[StreamChoice(delta={'content': normalized_content})]).json()}\n\n"
     
     yield f"data: {StreamResponse(id=stream_id, created=created_time, model=model, choices=[StreamChoice(delta={}, finish_reason='stop')]).json()}\n\n"
     yield "data: [DONE]\n\n"
@@ -126,7 +128,8 @@ async def aggregate_stream(response: httpx.Response) -> str:
             data = line[5:].strip()
             if data and data != "-1":
                 content.append(data)
-    return "".join(content)
+    # Convert literal "\n" sequences into actual newlines for final (non-stream) response
+    return "".join(content).replace("\\n", "\n")
 
 
 @app.post("/v1/chat/completions")
@@ -155,6 +158,7 @@ async def chat_completions(request: ChatCompletionRequest, auth: Optional[HTTPAu
         "messagesHistory": messages_history,
         "settings": {"model": request.model, "temperature": request.temperature}
     }
+    print(payload)
     
     headers = {
         'User-Agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
@@ -176,7 +180,6 @@ async def chat_completions(request: ChatCompletionRequest, auth: Optional[HTTPAu
                 model=request.model,
                 choices=[ChatCompletionChoice(message=ChatMessage(role="assistant", content=content))]
             )
-        return StreamingResponse(stream_generator(response, request.model), status_code=response.status_code)
         
     except httpx.HTTPStatusError as e:
         raise HTTPException(status_code=e.response.status_code, detail="TalkAI API error")

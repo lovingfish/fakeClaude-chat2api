@@ -37,7 +37,7 @@ Vercel 是部署此类 Web 应用的绝佳选择，因为它对 FastAPI 有很�
     *   展开 "Environment Variables" 部分。
     *   添加一个新的环境变量：
         *   **Name**: `CLIENT_API_KEYS`
-        *   **Value**: `.....zhu` (您可以设置一个或多个密钥，用逗号分隔，例如 `.....zhu,another-key`)
+        *   **Value**: `<YOUR_SECRET_KEY>` (您可以设置一个或多个密钥，用逗号分隔，例如 `<YOUR_SECRET_KEY>,another-key`)
 5.  **部署**:
     *   点击 "Deploy" 按钮。
     *   Vercel 将会自动构建和部署您的应用。稍等片刻，部署就会完成。
@@ -66,7 +66,7 @@ Render 是另一个优秀的免费部署平台。
     *   在配置页面的 "Advanced" 部分，找到 "Environment Variables"。
     *   点击 "Add Environment Variable"。
         *   **Key**: `CLIENT_API_KEYS`
-        *   **Value**: `.....zhu`
+        *   **Value**: `<YOUR_SECRET_KEY>`
 5.  **创建服务**:
     *   选择一个免费实例类型 (Free instance type)。
     *   点击 "Create Web Service" 按钮。
@@ -83,7 +83,7 @@ Render 是另一个优秀的免费部署平台。
 ```bash
 curl <YOUR_DEPLOYED_URL>/v1/chat/completions \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer .....zhu" \
+  -H "Authorization: Bearer <YOUR_SECRET_KEY>" \
   -d '{
     "model": "Claude Sonnet 4.1",
     "messages": [

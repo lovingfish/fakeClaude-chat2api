@@ -96,25 +96,36 @@ class StreamResponse(BaseModel):
 app = FastAPI(title="TalkAI OpenAI API Adapter")
 security = HTTPBearer()
 VALID_CLIENT_KEYS: set = set()
+TALKAI_API_KEY: Optional[str] = None
 
 
 def load_client_api_keys():
-    global VALID_CLIENT_KEYS
-    keys_str = os.environ.get("CLIENT_API_KEYS")
-    if keys_str:
-        # If the environment variable is set, use it
-        VALID_CLIENT_KEYS = set(key.strip() for key in keys_str.split(','))
-        print(f"Loaded {len(VALID_CLIENT_KEYS)} API key(s) from environment variable.")
+    global VALID_CLIENT_KEYS, TALKAI_API_KEY
+
+    # Load keys for authenticating requests to this service (e.g., .....zhu)
+    # This is loaded from an environment variable for security in deployment
+    service_keys_str = os.environ.get("CLIENT_API_KEYS")
+    if service_keys_str:
+        VALID_CLIENT_KEYS = set(key.strip() for key in service_keys_str.split(','))
+        print(f"Loaded {len(VALID_CLIENT_KEYS)} API key(s) for service authentication from environment variable.")
     else:
-        # Otherwise, fall back to the JSON file for local development
-        try:
-            with open("client_api_keys.json", "r", encoding="utf-8") as f:
-                keys = json.load(f)
-                VALID_CLIENT_KEYS = set(keys) if isinstance(keys, list) else set()
-                print(f"Loaded {len(VALID_CLIENT_KEYS)} API key(s) from client_api_keys.json.")
-        except (FileNotFoundError, json.JSONDecodeError):
-            VALID_CLIENT_KEYS = set()
-            print("No API keys loaded. The application will be open to all requests.")
+        # Fallback for local testing if env var is not set
+        VALID_CLIENT_KEYS = set()
+        print("No service API keys loaded from environment variable. Service authentication may be open.")
+
+    # Load the API key for authenticating with the downstream TalkAI service
+    # This is loaded from a file, as it's less sensitive and part of the original project setup
+    try:
+        with open("client_api_keys.json", "r", encoding="utf-8") as f:
+            keys = json.load(f)
+            if isinstance(keys, list) and keys:
+                TALKAI_API_KEY = keys[0]  # Use the first key from the list
+                print("Loaded TalkAI API key from client_api_keys.json.")
+            else:
+                TALKAI_API_KEY = None
+    except (FileNotFoundError, json.JSONDecodeError):
+        print("Warning: client_api_keys.json not found or invalid. Requests to TalkAI will be unauthenticated.")
+        TALKAI_API_KEY = None
 
 
 async def authenticate_client(
@@ -228,6 +239,9 @@ async def chat_completions(
         "Accept": "application/json, text/event-stream",
         "Content-Type": "application/json",
     }
+    # Add the TalkAI API key to the headers if it exists
+    if TALKAI_API_KEY:
+        headers['Authorization'] = f"Bearer {TALKAI_API_KEY}"
 
     try:
         client = httpx.AsyncClient(timeout=300)

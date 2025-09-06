@@ -104,14 +104,14 @@ def load_client_api_keys():
 
     # Load keys for authenticating requests to this service (e.g., .....zhu)
     # This is loaded from an environment variable for security in deployment
-    service_keys_str = os.environ.get("CLIENT_API_KEYS")
+    service_keys_str = os.environ.get("PASSWORD")
     if service_keys_str:
         VALID_CLIENT_KEYS = set(key.strip() for key in service_keys_str.split(','))
-        print(f"Loaded {len(VALID_CLIENT_KEYS)} API key(s) for service authentication from environment variable.")
+        print(f"Loaded {len(VALID_CLIENT_KEYS)} service auth key(s) from environment variable (PASSWORD).")
     else:
         # Fallback for local testing if env var is not set
         VALID_CLIENT_KEYS = set()
-        print("No service API keys loaded from environment variable. Service authentication may be open.")
+        print("No service auth keys loaded from environment variable (PASSWORD). Service authentication may be open.")
 
     # Load the API key for authenticating with the downstream TalkAI service
     # This is loaded from a file, as it's less sensitive and part of the original project setup
